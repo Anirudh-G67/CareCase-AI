@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShieldAlt, faSignOutAlt, faTrash, faHistory, faUserMinus, faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
-
+import api from "../utils/api.js";
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState(null);
@@ -34,7 +34,7 @@ export default function AdminDashboard() {
   const fetchAuditLogs = async () => {
     setLogsLoading(true);
     try {
-      const response = await axios.get('/api/admin/audit-logs');
+      const response = await api.get('/api/admin/audit-logs');
       setLogs(response.data.logs);
     } catch (err) {
       console.error("Failed to fetch logs", err);
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
     if (!window.confirm("Are you sure you want to clear ALL security audit logs? This action cannot be undone.")) return;
     
     try {
-      await axios.delete('/api/admin/audit-logs');
+      await api.delete('/api/admin/audit-logs');
       setActionMessage("All audit logs have been successfully cleared.");
       fetchAuditLogs();
       setTimeout(() => setActionMessage(''), 5000);
@@ -67,7 +67,7 @@ export default function AdminDashboard() {
     setActionMessage('');
 
     try {
-      await axios.delete(`/api/admin/patient/${deletePatientId.trim()}`);
+      await api.delete(`/api/admin/patient/${deletePatientId.trim()}`);
       setActionMessage(`Patient ${deletePatientId.trim()} was completely removed from the system.`);
       setDeletePatientId('');
       fetchAuditLogs(); // Refresh logs to show the deletion action

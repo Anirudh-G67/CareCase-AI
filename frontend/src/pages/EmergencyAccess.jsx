@@ -3,7 +3,7 @@ import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationTriangle, faShieldAlt, faArrowLeft, faHeartbeat } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
-
+import api from "../utils/api.js";
 export default function EmergencyAccess() {
   const [patientId, setPatientId] = useState('');
   const [reason, setReason] = useState('Unconscious patient / Trauma admission');
@@ -20,7 +20,7 @@ export default function EmergencyAccess() {
     setEmergencyData(null);
 
     try {
-      const response = await axios.post('/api/emergency/access', {
+      const response = await api.post('/api/emergency/access', {
         patient_id: patientId.trim(),
         reason: reason
       });

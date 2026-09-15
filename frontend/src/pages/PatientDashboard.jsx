@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCloudUploadAlt, faFileMedical, faMicrophone, faSpinner, faEye, faPaperPlane, faStop, faTimes, faPrescriptionBottleMedical, faCheckCircle, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
-
+import api from "../utils/api.js";
 export default function PatientDashboard() {
   const [patient, setPatient] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -68,7 +68,7 @@ export default function PatientDashboard() {
 
   const fetchReports = async (patientId) => {
     try {
-      const response = await axios.get(`/api/patient/reports/${patientId}`);
+      const response = await api.get(`/api/patient/reports/${patientId}`);
       setReports(response.data.reports);
     } catch (error) {
       console.error("Error fetching reports:", error);
@@ -77,7 +77,7 @@ export default function PatientDashboard() {
 
   const fetchPrescriptions = async (patientId) => {
     try {
-      const response = await axios.get(`/api/patient/prescriptions/${patientId}`);
+      const response = await api.get(`/api/patient/prescriptions/${patientId}`);
       setPrescriptions(response.data.prescriptions);
     } catch (error) {
       console.error("Error fetching prescriptions:", error);
@@ -89,7 +89,7 @@ export default function PatientDashboard() {
     setIsSavingMedical(true);
     setSaveMessage('');
     try {
-      await axios.put(`/api/patient/medical-info/${patient.patient_id}`, editForm);
+      await api.put(`/api/patient/medical-info/${patient.patient_id}`, editForm);
       const updatedPatient = { ...patient, ...editForm };
       sessionStorage.setItem('user', JSON.stringify(updatedPatient));
       setPatient(updatedPatient);
@@ -116,7 +116,7 @@ export default function PatientDashboard() {
     });
 
     try {
-      await axios.post(`/api/patient/upload-report?patient_id=${patient.patient_id}`, formData, {
+      await api.post(`/api/patient/upload-report?patient_id=${patient.patient_id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -175,7 +175,7 @@ export default function PatientDashboard() {
     } else {
       setIsSubmittingCase(true);
       try {
-        const res = await axios.post(`/api/doctor/generate-summary/${patient.patient_id}`, {
+        const res = await api.post(`/api/doctor/generate-summary/${patient.patient_id}`, {
           responses: updatedQA
         });
         setSummaryResult(res.data);

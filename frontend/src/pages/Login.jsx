@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faUserMd, faShieldAlt, faLock, faArrowRight, faSpinner, faHeartbeat } from '@fortawesome/free-solid-svg-icons';
-
+import api from "../utils/api.js";
 export default function Login() {
   const [role, setRole] = useState('patient'); // 'patient', 'doctor', 'admin'
   const [identifier, setIdentifier] = useState('');
@@ -19,7 +19,7 @@ export default function Login() {
 
     try {
       if (role === 'patient') {
-        const response = await axios.post('/api/auth/login/patient', {
+        const response = await api.post('/api/auth/login/patient', {
           patient_id: identifier.trim()
         });
         

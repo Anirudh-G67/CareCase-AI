@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeartbeat, faUser, faPhone, faIdCard, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import api from "../utils/api.js";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const response = await axios.post('/api/auth/register/patient', {
+      const response = await api.post('/api/auth/register/patient', {
         ...formData,
         age: parseInt(formData.age)
       });
