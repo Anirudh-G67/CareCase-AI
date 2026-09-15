@@ -46,6 +46,9 @@ class GeminiEmbeddingWrapper(embedding_functions.EmbeddingFunction):
             embeddings.append(result['embedding'])
         return embeddings
 
+    def name(self) -> str:
+        return "gemini_embedding_wrapper"
+
 if KEY:
     gemini_ef = GeminiEmbeddingWrapper(api_key=KEY)
 else:
@@ -53,7 +56,7 @@ else:
     print("WARNING: KEY is not set. Vector DB using default fallback.")
 
 collection = chroma_client.get_or_create_collection(
-    name="patient_medical_reports",
+    name="patient_medical_reports_v2",
     embedding_function=gemini_ef
 )
 
