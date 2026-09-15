@@ -35,7 +35,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/auth/register/patient', {
+      const response = await axios.post('/api/auth/register/patient', {
         ...formData,
         age: parseInt(formData.age)
       });

@@ -34,7 +34,7 @@ export default function AdminDashboard() {
   const fetchAuditLogs = async () => {
     setLogsLoading(true);
     try {
-      const response = await axios.get('http://127.0.0.1:8000/api/admin/audit-logs');
+      const response = await axios.get('/api/admin/audit-logs');
       setLogs(response.data.logs);
     } catch (err) {
       console.error("Failed to fetch logs", err);
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
     if (!window.confirm("Are you sure you want to clear ALL security audit logs? This action cannot be undone.")) return;
     
     try {
-      await axios.delete('http://127.0.0.1:8000/api/admin/audit-logs');
+      await axios.delete('/api/admin/audit-logs');
       setActionMessage("All audit logs have been successfully cleared.");
       fetchAuditLogs();
       setTimeout(() => setActionMessage(''), 5000);
@@ -67,7 +67,7 @@ export default function AdminDashboard() {
     setActionMessage('');
 
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/admin/patient/${deletePatientId.trim()}`);
+      await axios.delete(`/api/admin/patient/${deletePatientId.trim()}`);
       setActionMessage(`Patient ${deletePatientId.trim()} was completely removed from the system.`);
       setDeletePatientId('');
       fetchAuditLogs(); // Refresh logs to show the deletion action

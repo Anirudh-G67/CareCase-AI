@@ -20,7 +20,7 @@ export default function EmergencyAccess() {
     setEmergencyData(null);
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/emergency/access', {
+      const response = await axios.post('/api/emergency/access', {
         patient_id: patientId.trim(),
         reason: reason
       });

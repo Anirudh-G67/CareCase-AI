@@ -19,7 +19,7 @@ export default function Login() {
 
     try {
       if (role === 'patient') {
-        const response = await axios.post('http://127.0.0.1:8000/api/auth/login/patient', {
+        const response = await axios.post('/api/auth/login/patient', {
           patient_id: identifier.trim()
         });
         

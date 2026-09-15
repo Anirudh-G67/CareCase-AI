@@ -55,15 +55,15 @@ export default function DoctorDashboard() {
 
     try {
       // 1. Fetch Patient Demographics (Requires the new backend endpoint below)
-      const patientRes = await axios.get(`http://127.0.0.1:8000/api/doctor/patient/${searchId.trim()}`);
+      const patientRes = await axios.get(`/api/doctor/patient/${searchId.trim()}`);
       setPatientData(patientRes.data);
 
       // 2. Fetch AI Summary
-      const summaryRes = await axios.post(`http://127.0.0.1:8000/api/doctor/generate-summary/${searchId.trim()}`);
+      const summaryRes = await axios.post(`/api/doctor/generate-summary/${searchId.trim()}`);
       setSummaryData(summaryRes.data);
 
       // 3. Fetch Uploaded Reports
-      const reportsRes = await axios.get(`http://127.0.0.1:8000/api/patient/reports/${searchId.trim()}`);
+      const reportsRes = await axios.get(`/api/patient/reports/${searchId.trim()}`);
       setReports(reportsRes.data.reports);
 
     } catch (err) {
@@ -81,7 +81,7 @@ export default function DoctorDashboard() {
 
   const handleExport = async () => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/doctor/export-summary/${patientData.patient_id}`, {
+      const response = await axios.get(`/api/doctor/export-summary/${patientData.patient_id}`, {
         responseType: 'blob'
       });
       const blob = new Blob([response.data], { type: 'text/plain' });
@@ -104,7 +104,7 @@ export default function DoctorDashboard() {
 
     setIsSubmittingRx(true);
     try {
-      await axios.post('http://127.0.0.1:8000/api/doctor/prescription', {
+      await axios.post('/api/doctor/prescription', {
         patient_id: patientData.patient_id,
         ...prescription
       });
@@ -354,7 +354,7 @@ export default function DoctorDashboard() {
                         <span className="text-sm font-medium text-gray-800 truncate">{report.original_name}</span>
                       </div>
                       <a 
-                        href={`http://127.0.0.1:8000/api/patient/reports/view/${report.safe_filename}`}
+                        href={`/api/patient/reports/view/${report.safe_filename}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-50 flex items-center gap-1 font-bold shadow-sm whitespace-nowrap"

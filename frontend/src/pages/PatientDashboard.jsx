@@ -68,7 +68,7 @@ export default function PatientDashboard() {
 
   const fetchReports = async (patientId) => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/patient/reports/${patientId}`);
+      const response = await axios.get(`/api/patient/reports/${patientId}`);
       setReports(response.data.reports);
     } catch (error) {
       console.error("Error fetching reports:", error);
@@ -77,7 +77,7 @@ export default function PatientDashboard() {
 
   const fetchPrescriptions = async (patientId) => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/patient/prescriptions/${patientId}`);
+      const response = await axios.get(`/api/patient/prescriptions/${patientId}`);
       setPrescriptions(response.data.prescriptions);
     } catch (error) {
       console.error("Error fetching prescriptions:", error);
@@ -89,7 +89,7 @@ export default function PatientDashboard() {
     setIsSavingMedical(true);
     setSaveMessage('');
     try {
-      await axios.put(`http://127.0.0.1:8000/api/patient/medical-info/${patient.patient_id}`, editForm);
+      await axios.put(`/api/patient/medical-info/${patient.patient_id}`, editForm);
       const updatedPatient = { ...patient, ...editForm };
       sessionStorage.setItem('user', JSON.stringify(updatedPatient));
       setPatient(updatedPatient);
@@ -116,7 +116,7 @@ export default function PatientDashboard() {
     });
 
     try {
-      await axios.post(`http://127.0.0.1:8000/api/patient/upload-report?patient_id=${patient.patient_id}`, formData, {
+      await axios.post(`/api/patient/upload-report?patient_id=${patient.patient_id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -175,7 +175,7 @@ export default function PatientDashboard() {
     } else {
       setIsSubmittingCase(true);
       try {
-        const res = await axios.post(`http://127.0.0.1:8000/api/doctor/generate-summary/${patient.patient_id}`, {
+        const res = await axios.post(`/api/doctor/generate-summary/${patient.patient_id}`, {
           responses: updatedQA
         });
         setSummaryResult(res.data);
@@ -348,7 +348,7 @@ export default function PatientDashboard() {
                       <span className="text-sm font-bold text-slate-800 truncate">{report.original_name}</span>
                     </div>
                     <a 
-                      href={`http://127.0.0.1:8000/api/patient/reports/view/${report.safe_filename}`}
+                      href={`/api/patient/reports/view/${report.safe_filename}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs bg-white border border-gray-300 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 flex items-center gap-1 font-bold shadow-sm whitespace-nowrap"
