@@ -22,20 +22,20 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # --- CONFIGURE GEMINI AI ---
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+KEY = os.getenv("KEY", "")
+if KEY:
+    genai.configure(api_key=KEY)
 
 # --- INITIALIZE LOCAL VECTOR DB (CHROMA) WITH GEMINI ---
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
 # Use Gemini for embeddings instead of heavy local PyTorch models to save RAM
-if GEMINI_API_KEY:
-    gemini_ef = embedding_functions.GoogleGenerativeAiEmbeddingFunction(api_key=GEMINI_API_KEY)
+if KEY:
+    gemini_ef = embedding_functions.GoogleGenerativeAiEmbeddingFunction(api_key=KEY)
 else:
     # Fallback to default if API key is missing (prevents crash, but warns)
     gemini_ef = embedding_functions.DefaultEmbeddingFunction()
-    print("WARNING: GEMINI_API_KEY is not set. Vector DB using default fallback.")
+    print("WARNING: KEY is not set. Vector DB using default fallback.")
 
 collection = chroma_client.get_or_create_collection(
     name="patient_medical_reports",
@@ -86,7 +86,7 @@ class AIService:
         rag_history = AIService.query_patient_rag(patient_id, "previous history symptoms medications")
         
         # If no API key is provided, fallback to the fake placeholder data
-        if not GEMINI_API_KEY:
+        if not KEY:
             return {
                 "main_complaint": patient_data.get("complaint", "Persistent discomfort"),
                 "onset": "Approximately 3 days ago",
