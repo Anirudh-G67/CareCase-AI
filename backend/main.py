@@ -29,11 +29,26 @@ if KEY:
 # --- INITIALIZE LOCAL VECTOR DB (CHROMA) WITH GEMINI ---
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
-# Use Gemini for embeddings instead of heavy local PyTorch models to save RAM
+# Custom lightweight Gemini Embedding Function to bypass Chroma's header bug
+class GeminiEmbeddingWrapper(embedding_functions.EmbeddingFunction):
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        genai.configure(api_key=api_key)
+
+    def __call__(self, input: list[str]) -> list[list[float]]:
+        embeddings = []
+        for text in input:
+            result = genai.embed_content(
+                model="models/text-embedding-004",
+                content=text,
+                task_type="retrieval_document"
+            )
+            embeddings.append(result['embedding'])
+        return embeddings
+
 if KEY:
-    gemini_ef = embedding_functions.GoogleGenerativeAiEmbeddingFunction(api_key=KEY)
+    gemini_ef = GeminiEmbeddingWrapper(api_key=KEY)
 else:
-    # Fallback to default if API key is missing (prevents crash, but warns)
     gemini_ef = embedding_functions.DefaultEmbeddingFunction()
     print("WARNING: KEY is not set. Vector DB using default fallback.")
 
