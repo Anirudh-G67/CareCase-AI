@@ -7,9 +7,11 @@ from typing import List, Dict, Any
 import uuid
 import os
 import shutil
+import json
 from pypdf import PdfReader
 import chromadb
 from chromadb.utils import embedding_functions
+import google.generativeai as genai
 
 import models
 from database import engine, get_db
@@ -19,14 +21,25 @@ models.Base.metadata.create_all(bind=engine)
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# --- INITIALIZE LOCAL VECTOR DB (CHROMA) ---
+# --- CONFIGURE GEMINI AI ---
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+
+# --- INITIALIZE LOCAL VECTOR DB (CHROMA) WITH GEMINI ---
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
-sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-    model_name="all-MiniLM-L6-v2"
-)
+
+# Use Gemini for embeddings instead of heavy local PyTorch models to save RAM
+if GEMINI_API_KEY:
+    gemini_ef = embedding_functions.GoogleGenerativeAiEmbeddingFunction(api_key=GEMINI_API_KEY)
+else:
+    # Fallback to default if API key is missing (prevents crash, but warns)
+    gemini_ef = embedding_functions.DefaultEmbeddingFunction()
+    print("WARNING: GEMINI_API_KEY is not set. Vector DB using default fallback.")
+
 collection = chroma_client.get_or_create_collection(
     name="patient_medical_reports",
-    embedding_function=sentence_transformer_ef
+    embedding_function=gemini_ef
 )
 
 app = FastAPI(title="CareCase AI API", version="1.0.0")
@@ -71,18 +84,60 @@ class AIService:
     @staticmethod
     def generate_clinical_summary(patient_id: str, patient_data: dict, qa_responses: list) -> dict:
         rag_history = AIService.query_patient_rag(patient_id, "previous history symptoms medications")
-        return {
-            "main_complaint": patient_data.get("complaint", "Persistent discomfort"),
-            "onset": "Approximately 3 days ago",
-            "severity": "7/10",
-            "other_symptoms": "Reported fatigue and mild fever",
-            "medicines": "Reported standard analgesics",
-            "allergies": "Checked against records",
-            "ai_case_taking": qa_responses if qa_responses else [
-                {"q": "When did it start?", "a": "3 days ago"}
-            ],
-            "relevant_history": f"{rag_history} [Retrieved via Local RAG Engine]"
-        }
+        
+        # If no API key is provided, fallback to the fake placeholder data
+        if not GEMINI_API_KEY:
+            return {
+                "main_complaint": patient_data.get("complaint", "Persistent discomfort"),
+                "onset": "Approximately 3 days ago",
+                "severity": "7/10",
+                "other_symptoms": "Reported fatigue and mild fever",
+                "medicines": "Reported standard analgesics",
+                "allergies": "Checked against records",
+                "ai_case_taking": qa_responses if qa_responses else [{"q": "When did it start?", "a": "3 days ago"}],
+                "relevant_history": f"{rag_history} [Retrieved via Fallback]"
+            }
+
+        # --- REAL GEMINI AI GENERATION ---
+        try:
+            # Force Gemini to return structured JSON
+            model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
+            
+            prompt = f"""
+            You are an expert AI clinical assistant. Analyze the following patient data and generate a structured clinical summary.
+            
+            Current Complaint: {patient_data.get('complaint', 'Not provided')}
+            Patient QA Responses: {qa_responses}
+            Historical Records (from Vector RAG): {rag_history}
+            
+            You MUST return exactly this JSON structure and nothing else:
+            {{
+                "main_complaint": "Summarize the primary issue",
+                "onset": "When it started based on data",
+                "severity": "Estimate severity out of 10 or describe it",
+                "other_symptoms": "List any associated symptoms",
+                "medicines": "List current or recommended basic OTC medicines",
+                "allergies": "List allergies if mentioned, else 'None reported'",
+                "ai_case_taking": {json.dumps(qa_responses)},
+                "relevant_history": "Summarize their vector history in 1-2 sentences"
+            }}
+            """
+            response = model.generate_content(prompt)
+            return json.loads(response.text)
+            
+        except Exception as e:
+            print(f"Gemini API Error: {e}")
+            # Fallback to safe dictionary if AI parsing fails
+            return {
+                "main_complaint": patient_data.get("complaint", "Error connecting to AI"),
+                "onset": "N/A",
+                "severity": "N/A",
+                "other_symptoms": "N/A",
+                "medicines": "N/A",
+                "allergies": "N/A",
+                "ai_case_taking": qa_responses,
+                "relevant_history": rag_history
+            }
 
 # --- PYDANTIC MODELS ---
 class PatientRegistration(BaseModel):
@@ -250,12 +305,16 @@ async def get_summary(patient_id: str, payload: Dict[str, Any] = None, db: Sessi
         raise HTTPException(status_code=404, detail="Patient not found")
         
     qa_data = payload.get("responses", []) if payload else []
-    summary = AIService.generate_clinical_summary(patient_id, {"complaint": "Persistent headache"}, qa_data)
+    
+    # We pass the real complaint if it exists in the payload, otherwise default to generic checkup
+    complaint = payload.get("complaint", "General checkup") if payload else "General checkup"
+    
+    summary = AIService.generate_clinical_summary(patient_id, {"complaint": complaint}, qa_data)
     
     audit_entry = models.AuditLog(
         actor_id="DOCTOR_PORTAL",
         action_type="GENERATE_SUMMARY",
-        details=f"Generated RAG-backed clinical summary for patient {patient_id}"
+        details=f"Generated AI-backed clinical summary for patient {patient_id}"
     )
     db.add(audit_entry)
     db.commit()
@@ -271,20 +330,20 @@ async def export_summary(patient_id: str, db: Session = Depends(get_db)):
     summary = AIService.generate_clinical_summary(patient_id, {"complaint": "Persistent headache"}, [])
     
     report_content = f"""========================================
-CARECASE AI - RAG-BACKED CLINICAL SUMMARY
+CARECASE AI - GEMINI CLINICAL SUMMARY
 ========================================
 Patient ID: {patient.patient_id}
 Name: {patient.full_name}
 Blood Group: {patient.blood_group}
 Age / Sex: {patient.age} / {patient.sex}
 
-1. Main Complaint: {summary['main_complaint']}
-2. Onset: {summary['onset']}
-3. Severity: {summary['severity']}
-4. Other Symptoms: {summary['other_symptoms']}
-5. Medicines: {summary['medicines']}
-6. Allergies: {summary['allergies']}
-7. Relevant History (Vector RAG): {summary['relevant_history']}
+1. Main Complaint: {summary.get('main_complaint', 'N/A')}
+2. Onset: {summary.get('onset', 'N/A')}
+3. Severity: {summary.get('severity', 'N/A')}
+4. Other Symptoms: {summary.get('other_symptoms', 'N/A')}
+5. Medicines: {summary.get('medicines', 'N/A')}
+6. Allergies: {summary.get('allergies', 'N/A')}
+7. Relevant History (Vector RAG): {summary.get('relevant_history', 'N/A')}
 ========================================
 Verified by CareCase AI Clinical Engine
 """

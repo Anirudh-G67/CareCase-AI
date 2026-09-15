@@ -2,7 +2,8 @@ fastapi
 uvicorn
 sqlalchemy
 psycopg2-binary
+pydantic
 pypdf
 chromadb
-sentence-transformers
-pydantic
+google-generativeai
+python-multipart
